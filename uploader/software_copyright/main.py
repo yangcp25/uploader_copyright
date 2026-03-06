@@ -59,12 +59,14 @@ async def step2(page, info):
     await page.fill('input[placeholder*="简称"]', info["shortname"])
     await page.fill('input[placeholder="请输入版本号"]', info["version"])
     await page.click('button:has-text("下一步")')
-    await page.wait_for_timeout(800)
+    await page.wait_for_load_state("networkidle")
 
 async def step3(page):
     print("➡️ Step3: 软件分类 + 开发方式 + 发表状态")
     # 点击分类下拉框
     await page.click('div.box.large:has-text("请选择软件分类")')
+    # await page.click('div.box.large:has-text("应用软件")')
+    # await page.wait_for_load_state("networkidle")
     await page.wait_for_selector('.hd-option')  # 等选项展示
 
     # 点击 “应用软件”
@@ -113,13 +115,12 @@ async def step4(page, info):
 
     print("➡️ 上传文件...")
     # 上传程序鉴别材料（第一个上传框）
-    await page.locator('div.upLoadBox:has-text("源程序前连续的30页") input[type="file"]').set_input_files("upload_docs/program.pdf")
+    await page.locator('div.upLoadBox:has-text("源程序前连续的30页") input[type="file"]').set_input_files("upload_docs/code.pdf")
     # 等待上传成功（隐藏错误提示）
     await page.wait_for_load_state("networkidle")    
-    await page.pause()
-    # 上传文档鉴别材料（第二个上传框）
-    await page.locator('div.upLoadBox:has-text("提交任何一种文档的前连续的30页") input[type="file"]').set_input_files("upload_docs/program.pdf")
 
+    # 上传文档鉴别材料（第二个上传框）
+    await page.locator('div.upLoadBox:has-text("提交任何一种文档的前连续的30页") input[type="file"]').set_input_files("upload_docs/doc.pdf")
     # 等待上传成功
     await page.wait_for_load_state("networkidle")
 
@@ -128,19 +129,29 @@ async def step4(page, info):
     await page.wait_for_load_state("networkidle")
     print("✅ Step4 完成")
 
+async def step5(page):
+    await page.click('span:has-text("电子证书")')
+    # await page.click('button:has-text("下一步")')
+    # await page.wait_for_load_state("networkidle")
+    print("✅ Step5 完成")
+
+
 # -------------------------------------------
 
 async def main():
     async with async_playwright() as pw:
         page = await login_or_load_cookies(pw)
+        page.set_default_timeout(0)              # 所有等待操作不超时
         info = load_info()
 
         await step1(page)
         await step2(page, info)
         await step3(page)
         await step4(page, info)
-        await page.pause()
-        print("🎉 已完成前 4 步，等待你确认下一步提交")
+        await step5(page)
+        print("🎉 已完成前 5 步，等待你确认下一步提交")
+        print("🎉 浏览器仍然打开，按 Ctrl+C 退出")
+        await asyncio.Event().wait()   # 阻塞，浏览器保持打开
 
 if __name__ == "__main__":
     asyncio.run(main())
